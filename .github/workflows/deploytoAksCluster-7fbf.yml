@@ -1,0 +1,50 @@
+on: [push]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    
+    - uses: azure/docker-login@v1
+      with:
+        login-server: acrazsingaporemeetupdemo.azurecr.io
+        username: ${{ secrets.acr_acrazsingaporemeetupdemo_username }}
+        password: ${{ secrets.acr_acrazsingaporemeetupdemo_password }}
+    
+    - name: Build and push image to ACR
+      id: build-image
+      run: |
+        docker build "$GITHUB_WORKSPACE/." -f  "." -t acrazsingaporemeetupdemo.azurecr.io/aksazsingaporemeetupdemo7fbf:${{ github.sha }}
+        docker push acrazsingaporemeetupdemo.azurecr.io/aksazsingaporemeetupdemo7fbf:${{ github.sha }}
+    
+    - uses: azure/k8s-set-context@v1
+      with:
+         kubeconfig: ${{ secrets.aks_aksazsingaporemeetupdemo_kubeConfig }}
+      id: login
+    
+    - name: Create namespace
+      run: |
+        namespacePresent=`kubectl get namespace | grep aksazsingaporemeetupdemo7fbf | wc -l`
+        if [ $namespacePresent -eq 0 ]
+        then
+            echo `kubectl create namespace aksazsingaporemeetupdemo7fbf`
+        fi
+
+    - uses: azure/k8s-create-secret@v1
+      with:
+        namespace: aksazsingaporemeetupdemo7fbf
+        container-registry-url: acrazsingaporemeetupdemo.azurecr.io
+        container-registry-username: ${{ secrets.acr_acrazsingaporemeetupdemo_username }}
+        container-registry-password: ${{ secrets.acr_acrazsingaporemeetupdemo_password }}
+        secret-name: aksazsingapodockerauth
+       
+    - uses: azure/k8s-deploy@v1.2
+      with:
+        namespace: aksazsingaporemeetupdemo7fbf
+        manifests: |
+          ./manifests/deployment-7fbf.yml
+          ./manifests/service-7fbf.yml
+        images: |
+          acrazsingaporemeetupdemo.azurecr.io/aksazsingaporemeetupdemo7fbf:${{ github.sha }}
+        imagepullsecrets: |
+          aksazsingapodockerauth
