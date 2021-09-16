@@ -14,7 +14,7 @@ jobs:
     - name: Build and push image to ACR
       id: build-image
       run: |
-        docker build "$GITHUB_WORKSPACE/." -f  "." -t acrazsingaporemeetupdemo.azurecr.io/aksazsingaporemeetupdemo7fbf:${{ github.sha }}
+        docker build "$GITHUB_WORKSPACE/." -f  "Dockerfile" -t acrazsingaporemeetupdemo.azurecr.io/aksazsingaporemeetupdemo7fbf:${{ github.sha }}
         docker push acrazsingaporemeetupdemo.azurecr.io/aksazsingaporemeetupdemo7fbf:${{ github.sha }}
     
     - uses: azure/k8s-set-context@v1
